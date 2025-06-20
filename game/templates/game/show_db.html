@@ -1,0 +1,75 @@
+<!-- show_db.html -->
+{% extends 'game/base.html' %}
+{% block content %}
+<div class="mb-3">
+  <form id="filter-data-form" method="get" class="d-inline-block me-3">
+    <label for="filter-option" class="form-label fw-bold">Show Data:</label>
+    <select id="filter-option" class="form-select d-inline-block w-auto" name="filter" onchange="this.form.submit()">
+      <option value="all" {% if filter == 'all' or not filter %}selected{% endif %}>All</option>
+      <option value="1d" {% if filter == '1d' %}selected{% endif %}>Last 1 Day</option>
+      <option value="1w" {% if filter == '1w' %}selected{% endif %}>Last 1 Week</option>
+      <option value="1m" {% if filter == '1m' %}selected{% endif %}>Last 1 Month</option>
+    </select>
+  </form>
+  <form id="clear-data-form" method="post" onsubmit="return false;">
+    <label for="clear-option" class="form-label fw-bold">Clear Data:</label>
+    <select id="clear-option" class="form-select d-inline-block w-auto" name="option">
+      <option value="1d">Last 1 Day</option>
+      <option value="1w">Last 1 Week</option>
+      <option value="1m">Last 1 Month</option>
+      <option value="all">All Data</option>
+    </select>
+    <button type="submit" class="btn btn-danger ms-2" id="clear-data-btn">Clear</button>
+  </form>
+  <div id="clear-data-msg" class="mt-2"></div>
+</div>
+<h4>A* Paths</h4>
+<table class="table">
+    <tr><th>User</th><th>Start</th><th>Goal</th><th>Length</th><th>Created</th></tr>
+    {% for p in astar_paths %}
+    <tr><td>{{ p.user.username }}</td><td>({{ p.start_row }},{{ p.start_col }})</td><td>({{ p.goal_row }},{{ p.goal_col }})</td><td>{{ p.path_length }}</td><td>{{ p.created_at }}</td></tr>
+    {% endfor %}
+</table>
+<h4>Dijkstra Paths</h4>
+<table class="table">
+    <tr><th>User</th><th>Start</th><th>Goal</th><th>Length</th><th>Created</th></tr>
+    {% for p in dijkstra_paths %}
+    <tr><td>{{ p.user.username }}</td><td>({{ p.start_row }},{{ p.start_col }})</td><td>({{ p.goal_row }},{{ p.goal_col }})</td><td>{{ p.path_length }}</td><td>{{ p.created_at }}</td></tr>
+    {% endfor %}
+</table>
+{% endblock %}
+{% block extra_body_class %}show-db-page{% endblock %}
+{% block scripts %}
+{{ block.super }}
+<script>
+document.getElementById('clear-data-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const option = document.getElementById('clear-option').value;
+  const btn = document.getElementById('clear-data-btn');
+  const msg = document.getElementById('clear-data-msg');
+  btn.disabled = true;
+  msg.textContent = 'Clearing...';
+  fetch('{% url "clear_path_data" %}', {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': (document.cookie.match(/csrftoken=([^;]+)/)||[])[1],
+    },
+    body: new URLSearchParams({option})
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      msg.textContent = 'Data cleared successfully.';
+      setTimeout(() => window.location.reload(), 1200);
+    } else {
+      msg.textContent = data.error || 'Failed to clear data.';
+    }
+  })
+  .catch(() => { msg.textContent = 'Error clearing data.'; })
+  .finally(() => { btn.disabled = false; });
+});
+</script>
+  <div class="mt-4 text-center">
+    <a href="{% url 'dashboard' %}" class="btn btn-primary">Back to Dashboard</a>
+  </div>
+{% endblock %}

@@ -1,0 +1,193 @@
+{% extends 'game/base.html' %}
+{% load static %}
+{% load custom_filters %}
+{% block content %}
+<div id="theme-recommendation" class="dashboard-recommendation" style="display:none; font-size:1.18rem; font-weight:700; justify-content:center; align-items:center; text-align:center; white-space:nowrap;">
+    Tip: For the best experience, enable <span style="color:#ffd700; font-weight:800;">dark mode</span> using the theme toggle above.
+</div>
+<div class="dashboard-container">
+    <h1 class="dashboard-title">Hi, <span class="username-inline" title="{{ user.first_name|default:user.username }}">{{ user.first_name|default:user.username|capfirst }}</span></h1>
+    {% if is_admin %}
+        <div class="dashboard-subtitle">Admin Dashboard</div>
+        <div class="dashboard-links">
+            <div class="dashboard-link-card">
+                <span class="dashboard-link-icon"><i class="bi bi-controller"></i></span>
+                <a href="{% url 'game' %}" class="dashboard-link">Play Game</a>
+                <div class="dashboard-link-desc">Start or continue your AI pathfinding game.</div>
+            </div>
+            <div class="dashboard-link-card">
+                <span class="dashboard-link-icon"><i class="bi bi-table"></i></span>
+                <a href="{% url 'show_db' %}" class="dashboard-link">View Database</a>
+                <div class="dashboard-link-desc">See all user and game data.</div>
+            </div>
+            <div class="dashboard-link-card">
+                <span class="dashboard-link-icon"><i class="bi bi-file-earmark-arrow-down"></i></span>
+                <a href="{% url 'export_zip_csv' %}" class="dashboard-link">Export CSV</a>
+                <div class="dashboard-link-desc">Download your data for analysis.</div>
+            </div>
+        </div>
+    {% else %}
+        <div class="dashboard-subtitle">User Dashboard</div>
+        <div class="dashboard-links">
+            <div class="dashboard-link-card">
+                <span class="dashboard-link-icon"><i class="bi bi-controller"></i></span>
+                <a href="{% url 'game' %}" class="dashboard-link">Play Game</a>
+                <div class="dashboard-link-desc">Start or continue your AI pathfinding game.</div>
+            </div>
+            <div class="dashboard-link-card">
+                <span class="dashboard-link-icon"><i class="bi bi-bar-chart"></i></span>
+                <a href="#" class="dashboard-link" id="show-activity-btn">Activity</a>
+                <div class="dashboard-link-desc">View your recent activity as a bar graph.</div>
+            </div>
+            <div class="dashboard-link-card">
+                <span class="dashboard-link-icon"><i class="bi bi-box-arrow-right"></i></span>
+                <a href="{% url 'logout' %}" class="dashboard-link">Logout</a>
+                <div class="dashboard-link-desc">Sign out of your account.</div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+<!-- Activity Modal -->
+<div class="modal fade" id="activityModal" tabindex="-1" aria-labelledby="activityModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="activityModalLabel">Your Activity</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <canvas id="activityChart" style="width:100%;max-width:800px;"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    function showThemeRecommendation() {
+        var rec = document.getElementById('theme-recommendation');
+        if (!rec) return;
+        // Show recommendation for both user and admin dashboards when dark mode is off
+        if (document.body.classList.contains('dark-mode')) {
+            rec.style.display = 'none';
+        } else {
+            rec.style.display = 'flex';
+        }
+    }
+    // Initial check
+    showThemeRecommendation();
+    // Listen for theme changes (if user toggles theme)
+    const observer = new MutationObserver(showThemeRecommendation);
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+    // Activity Modal logic
+    document.addEventListener('DOMContentLoaded', function() {
+        var btn = document.getElementById('show-activity-btn');
+        if (btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                var modal = new bootstrap.Modal(document.getElementById('activityModal'));
+                modal.show();
+                fetchUserActivity();
+            });
+        }
+    });
+    function fetchUserActivity() {
+        fetch('{% url "user_activity_data" %}')
+            .then(response => response.json())
+            .then(data => renderActivityBarChart(data))
+            .catch(() => renderActivityBarChart({labels:[], values:[]}));
+    }
+    var activityChartInstance = null;
+    function renderActivityBarChart(data) {
+        var ctx = document.getElementById('activityChart').getContext('2d');
+        if (activityChartInstance) activityChartInstance.destroy();
+        activityChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.labels, // x-axis: dates like 'Jun 10'
+                datasets: [{
+                    label: 'No. of Games Played',
+                    data: data.values,
+                    backgroundColor: function(context) {
+                        const gradient = context.chart.ctx.createLinearGradient(0, 0, 0, context.chart.height);
+                        gradient.addColorStop(0, '#ff69b4');
+                        gradient.addColorStop(1, '#ff1493');
+                        return gradient;
+                    },
+                    borderColor: '#ff69b4',
+                    borderWidth: 2,
+                    borderRadius: 7,
+                    hoverBackgroundColor: '#ff1493',
+                    hoverBorderColor: '#fff',
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: { display: false },
+                    title: {
+                        display: true,
+                        text: 'User Activity (Last 7 Days)',
+                        color: '#fff',
+                        font: { size: 20, weight: 'bold' }
+                    },
+                    tooltip: {
+                        backgroundColor: '#222',
+                        titleColor: '#ff69b4',
+                        bodyColor: '#fff',
+                        borderColor: '#ff69b4',
+                        borderWidth: 2,
+                        callbacks: {
+                            label: function(context) {
+                                return `No. of Games Played: ${context.parsed.y}`;
+                            }
+                        }
+                    }
+                },
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: {
+                    padding: 20
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date',
+                            color: '#ff69b4',
+                            font: { size: 15, weight: 'bold' }
+                        },
+                        ticks: {
+                            color: '#fff',
+                            font: { size: 13 }
+                        },
+                        grid: { display: false, drawBorder: false }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'No. of Games Played',
+                            color: '#ff69b4',
+                            font: { size: 15, weight: 'bold' }
+                        },
+                        ticks: {
+                            color: '#fff',
+                            font: { size: 13 }
+                        },
+                        grid: { display: false, drawBorder: false }
+                    }
+                }
+            },
+            plugins: [{
+                beforeDraw: function(chart) {
+                    var ctx = chart.ctx;
+                    ctx.save();
+                    ctx.globalCompositeOperation = 'destination-over';
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(0, 0, chart.width, chart.height);
+                    ctx.restore();
+                }
+            }]
+        });
+    }
+</script>
+{% endblock %}

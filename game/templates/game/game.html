@@ -1,0 +1,185 @@
+{% extends 'game/base.html' %}
+{% load static %}
+{% block content %}
+<!-- Prevent browser cache for this page -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<script>
+// Clear local/session storage and force reload without cache
+window.addEventListener('DOMContentLoaded', function() {
+    if (window.localStorage) localStorage.clear();
+    if (window.sessionStorage) sessionStorage.clear();
+    // Optionally, force reload without cache (uncomment if needed):
+    // if (performance.navigation.type === 1) window.location.reload(true);
+});
+</script>
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-10 col-lg-8">
+            <h2 class="mb-3 text-center">AI Pathfinder Simulator</h2>
+            <div class="d-flex justify-content-center mb-3 flex-wrap gap-2">
+                <button class="btn btn-astar" onclick="runAStar()">Run A*</button>
+                <button class="btn btn-dijkstra" onclick="runDijkstra()">Run Dijkstra</button>
+                <button class="btn btn-secondary" onclick="clearGrid()">Clear Grid</button>
+                <button class="btn btn-gold" id="show-stats-btn" onclick="showStatsModal()">Show Stats</button>
+            </div>
+            <div class="d-flex justify-content-center">
+                <div id="grid-wrapper" style="overflow-x:auto;">
+                    <table id="grid-table" class="table table-bordered" style="margin:auto;">
+                        <!-- Grid will be generated here -->
+                    </table>
+                </div>
+            </div>
+            <div class="alert alert-info text-center" id="instructions">
+                <strong>Instructions:</strong> Click to set <span class="badge bg-success">Start</span>, <span class="badge bg-danger">Goal</span>, and <span class="badge bg-dark">Obstacles</span> on the grid. Then run a pathfinding algorithm.
+            </div>
+        </div>
+    </div>
+    <div class="d-flex justify-content-center mt-4 mb-2">
+        <a href="{% url 'dashboard' %}" class="btn btn-warning" style="font-weight:700; min-width:180px;">Back to Dashboard</a>
+    </div>
+</div>
+<!-- Stats Modal -->
+<div class="modal fade" id="statsModal" tabindex="-1" aria-labelledby="statsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="statsModalLabel">Algorithm Efficiency</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <canvas id="statsChart" width="400" height="300"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+<script src="{% static 'game/game_grid.js' %}"></script>
+<script src="{% static 'game/dark_mode.js' %}"></script>
+<script>
+window.lastAStarLength = 0;
+window.lastDijkstraLength = 0;
+window.lastAStarTime = 0;
+window.lastDijkstraTime = 0;
+window.statsChart = null;
+function showStatsModal() {
+    const modal = new bootstrap.Modal(document.getElementById('statsModal'));
+    renderStatsChart();
+    modal.show();
+}
+function renderStatsChart() {
+    const ctx = document.getElementById('statsChart').getContext('2d');
+    if (window.statsChart) window.statsChart.destroy();
+    window.statsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['A*', 'Dijkstra'],
+            datasets: [
+                {
+                    label: 'Path Length',
+                    data: [window.lastAStarLength, window.lastDijkstraLength],
+                    backgroundColor: [
+                        '#dc3545', // A* red
+                        '#007bff'  // Dijkstra blue
+                    ],
+                    borderColor: [
+                        '#dc3545',
+                        '#007bff'
+                    ],
+                    borderWidth: 3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            layout: {
+                padding: {
+                    top: 20
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                title: {
+                    display: true,
+                    text: 'Algorithm Efficiency (Path Length)',
+                    color: '#111', // Always black
+                    font: { size: 22, weight: 'bold' },
+                    padding: { top: 10, bottom: 20 }
+                },
+                datalabels: {
+                    display: false
+                }
+            },
+            scales: {
+                x: {
+                    display: true,
+                    ticks: {
+                        color: '#111',
+                        font: { weight: 'bold', size: 16 }
+                    },
+                    grid: {
+                        color: '#bbb'
+                    }
+                },
+                y: {
+                    display: true,
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Path Length',
+                        color: '#111',
+                        font: { weight: 'bold', size: 16 }
+                    },
+                    ticks: {
+                        color: '#111',
+                        font: { weight: 'bold', size: 16 }
+                    },
+                    grid: {
+                        color: '#bbb'
+                    }
+                }
+            }
+        },
+        plugins: [ChartDataLabels]
+    });
+}
+// Patch runAStar and runDijkstra to record time and update stats
+function patchAlgorithmStats() {
+    if (typeof window.runAStar === 'function') {
+        const origRunAStar = window.runAStar;
+        window.runAStar = function() {
+            const t0 = performance.now();
+            const result = origRunAStar();
+            // Wait for async fetch to complete
+            setTimeout(function() {
+                if (typeof astarPath !== 'undefined' && astarPath.length > 0) {
+                    window.lastAStarLength = astarPath.length;
+                    window.lastAStarTime = Math.round(performance.now() - t0);
+                }
+            }, 100);
+            return result;
+        };
+    }
+    if (typeof window.runDijkstra === 'function') {
+        const origRunDijkstra = window.runDijkstra;
+        window.runDijkstra = function() {
+            const t0 = performance.now();
+            const result = origRunDijkstra();
+            setTimeout(function() {
+                if (typeof dijkstraPath !== 'undefined' && dijkstraPath.length > 0) {
+                    window.lastDijkstraLength = dijkstraPath.length;
+                    window.lastDijkstraTime = Math.round(performance.now() - t0);
+                }
+            }, 100);
+            return result;
+        };
+    }
+}
+document.addEventListener('DOMContentLoaded', patchAlgorithmStats);
+</script>
+{% endblock %}

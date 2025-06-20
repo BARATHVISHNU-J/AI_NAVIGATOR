@@ -1,0 +1,18 @@
+{% extends 'game/base.html' %}
+{% block content %}
+<div class="floating-container row justify-content-center align-items-center" style="min-height:60vh;">
+  <div class="col-md-8 text-center">
+    <h1 class="mb-4">Welcome to AI Navigator!</h1>
+    <p class="lead mb-4">
+      <strong>AI Navigator</strong> is an interactive pathfinding simulator where you can explore and visualize how algorithms like <b>A*</b> and <b>Dijkstra</b> find the shortest path in a grid. Set your start, goal, and obstacles, then watch the AI solve the maze!
+    </p>
+    <ul class="list-group mb-4 text-start mx-auto" style="max-width:500px;">
+      <li class="list-group-item">✔️ Visualize A* and Dijkstra algorithms</li>
+      <li class="list-group-item">✔️ Save and review your paths (admin can view all)</li>
+      <li class="list-group-item">✔️ User and admin login</li>
+      <li class="list-group-item">✔️ Export path data as CSV (admin only)</li>
+    </ul>
+    <a href="{% url 'login' %}" class="btn btn-lg btn-primary">Play Now</a>
+  </div>
+</div>
+{% endblock %}
