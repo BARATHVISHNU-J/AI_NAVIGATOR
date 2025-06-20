@@ -1,11 +1,22 @@
-*.pyc
+# Byte-compiled / optimized / DLL files
 __pycache__/
-db.sqlite3
+*.py[cod]
+*$py.class
+
+# Environment variables
 .env
-/static/
-/media/
-*.log
-*.sqlite3
-venv/
-.env
+
+# Static files
 staticfiles/
+
+# Django specific
+db.sqlite3
+*.log
+
+# VSCode / IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
