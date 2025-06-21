@@ -54,6 +54,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+     'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'ai_navigator.urls'
@@ -118,7 +119,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / "game" / "static"]
+#STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static'),]
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
@@ -140,3 +141,4 @@ TEMPLATES[0]['DIRS'] = [os.path.join(BASE_DIR, 'game', 'templates')]
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'  # Optional: where to go after successful login
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
