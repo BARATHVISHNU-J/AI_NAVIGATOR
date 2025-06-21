@@ -7,7 +7,6 @@ __pycache__/
 .env
 
 # Static files
-staticfiles/
 
 # Django specific
 db.sqlite3
