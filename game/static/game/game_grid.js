@@ -1,20 +1,30 @@
+// Number of rows and columns in the grid
 const ROWS = 10, COLS = 10;
+// Reference to the grid table element
 const gridTable = document.getElementById('grid-table');
+// Current mode: 'start', 'goal', or placing obstacles
 let mode = 'start';
+// Store the start and goal cell positions
 let startCell = null, goalCell = null;
+// 2D array representing the state of each cell
 let gridState = Array.from({ length: ROWS }, () => Array(COLS).fill('empty'));
+// Last algorithm run (for stats)
 let lastAlgorithm = null;
+// Store the path for A* and Dijkstra
 let astarPath = [];
 let dijkstraPath = [];
 
+// Image sources for start, goal, and obstacle
 const images = {
     start: '/static/game/start.png',
     goal: '/static/game/goal.png',
     obstacle: '/static/game/obstacle.png',
 };
 
+// Track if an algorithm has run since last clear
 let algorithmRunSinceLastClear = false;
 
+// Render the grid based on gridState and cell types
 function renderGrid() {
     gridTable.innerHTML = '';
     for (let r = 0; r < ROWS; r++) {
@@ -58,6 +68,7 @@ function renderGrid() {
     }
 }
 
+// Handle left click on a cell: set start, goal, or toggle obstacle
 function handleCellClick(r, c, btn, e) {
     if (e && e.button === 2) return; // Ignore right click here
     if (!startCell) {
@@ -80,6 +91,7 @@ function handleCellClick(r, c, btn, e) {
     renderGrid();
 }
 
+// Handle right click on a cell: remove start, goal, or obstacle
 function handleCellRightClick(r, c, btn, e) {
     e.preventDefault();
     if (gridState[r][c] === 'start') {
@@ -94,6 +106,7 @@ function handleCellRightClick(r, c, btn, e) {
     renderGrid();
 }
 
+// Clear the grid and reset all state
 function clearGrid() {
     if (algorithmRunSinceLastClear) {
         fetch('/api/increment_games_played/', {
@@ -113,9 +126,17 @@ function clearGrid() {
     startCell = null;
     goalCell = null;
     mode = 'start';
+    astarPath = [];
+    dijkstraPath = [];
+    // Remove all path-related classes from the grid
+    const cells = document.querySelectorAll('.grid-cell-btn');
+    cells.forEach(cell => {
+        cell.classList.remove('path-astar', 'path-dijkstra', 'path-both');
+    });
     renderGrid();
 }
 
+// Get the current grid state as a 2D array
 function getGridData() {
     let grid = [];
     for (let r = 0; r < ROWS; r++) {
@@ -136,6 +157,7 @@ if (typeof window !== 'undefined') {
     if (typeof window.lastDijkstraLength === 'undefined') window.lastDijkstraLength = 0;
 }
 
+// Run A* algorithm
 function runAStar() {
     if (!startCell || !goalCell) {
         alert('Please select start and goal cells.');
@@ -169,6 +191,7 @@ function runAStar() {
     });
 }
 
+// Run Dijkstra's algorithm
 function runDijkstra() {
     if (!startCell || !goalCell) {
         alert('Please select start and goal cells.');
@@ -202,6 +225,7 @@ function runDijkstra() {
     });
 }
 
+// Show both A* and Dijkstra paths on the grid
 function showBothPaths() {
     // Remove only previous path cells, but keep both paths if present
     for (let r = 0; r < ROWS; r++) {
@@ -253,6 +277,7 @@ async function animatePathWithOverlay(path, algorithm) {
     }
 }
 
+// Get CSRF token from cookies
 function getCSRFToken() {
     let name = 'csrftoken';
     let cookieValue = null;

@@ -2,8 +2,11 @@
 // Toggles dark mode and saves preference in localStorage
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Get the theme toggle icon element
     const themeIcon = document.getElementById('theme-toggle-icon');
+    // Check if user prefers dark mode by system setting
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    // Get dark mode preference from localStorage
     let darkMode = localStorage.getItem('darkMode');
     if (darkMode === null) {
         darkMode = prefersDark ? 'enabled' : 'disabled';
@@ -22,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             return;
         }
+        // Enable or disable dark mode based on preference
         if (darkMode === 'enabled') {
             if (!document.body.classList.contains('dark-mode')) {
                 document.body.classList.add('dark-mode');
