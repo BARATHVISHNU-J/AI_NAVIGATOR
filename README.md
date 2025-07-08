@@ -6,7 +6,7 @@
 
 ## 🌐 Live Demo
 
-https://ai-navigator-61jp.onrender.com/
+https://ai-navigator-ttli.onrender.com/
 
 ---
 
